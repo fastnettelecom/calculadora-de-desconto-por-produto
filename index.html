@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Inteligente de Descontos - Fastnet Telecom</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial, sans-serif;
+    background:#f4f4f4;
+    padding:20px;
+    margin:0;
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+    background:#fff;
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 4px 15px rgba(0,0,0,.12);
+}
+
+.topo{
+    background:linear-gradient(90deg,#dd3627,#c22227);
+    text-align:center;
+    padding:25px;
+    color:#fff;
+}
+
+.topo img{
+    max-width:180px;
+    margin-bottom:10px;
+}
+
+.topo h1{
+    margin:0;
+    color:#fff;
+    font-size:28px;
+}
+
+.topo p{
+    margin-top:8px;
+    opacity:.9;
+}
+
+.conteudo{
+    padding:25px;
+}
+
+label{
+    font-weight:bold;
+    color:#444;
+}
+
+input,
+select{
+    padding:10px;
+    margin:5px;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+
+button{
+    background:linear-gradient(90deg,#dd3627,#c22227);
+    color:#fff;
+    border:none;
+    border-radius:6px;
+    padding:10px 18px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+button:hover{
+    opacity:.95;
+}
+
+.produto{
+    background:#fafafa;
+    border-left:4px solid #dd3627;
+    padding:10px;
+    margin-bottom:10px;
+    border-radius:6px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+table th,
+table td{
+    border:1px solid #ddd;
+    padding:10px;
+    text-align:center;
+}
+
+table th{
+    background:#c22227;
+    color:#fff;
+}
+
+table tr:nth-child(even){
+    background:#f5f5f5;
+}
+
+.resultado{
+    margin-top:20px;
+}
+
+textarea{
+    width:100%;
+    height:180px;
+    margin-top:10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    padding:10px;
+}
+
+.erro{
+    color:#c22227;
+    font-weight:bold;
+    margin-top:10px;
+    background:#ffe9e9;
+    border:1px solid #ffbcbc;
+    padding:10px;
+    border-radius:6px;
+}
+
+.kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:15px;
+    margin-top:20px;
+}
+
+.kpi{
+    background:#fafafa;
+    border-left:5px solid #dd3627;
+    padding:15px;
+    border-radius:6px;
+}
+
+.kpi strong{
+    display:block;
+    color:#c22227;
+    margin-bottom:5px;
+}
+
+.rodape{
+    background:#c22227;
+    color:#fff;
+    text-align:center;
+    padding:12px;
+    margin-top:20px;
+}
+
+@media(max-width:768px){
+
+    input,
+    select,
+    button{
+        width:100%;
+        margin:5px 0;
+    }
+
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="topo">
+    <img src="https://lh3.googleusercontent.com/d/1uD19Ne-GTmhgBC0swzwyOSZ30mmmflCS" alt="Fastnet Telecom">
+    <h1>Calculadora Inteligente de Descontos</h1>
+    <p>Distribuição proporcional de descontos para contratos multicomponentes</p>
+</div>
+
+<div class="conteudo">
+
+<label>Tipo de desconto:</label>
+<select id="tipoDesconto">
+    <option value="percentual">Percentual (%)</option>
+    <option value="valor">Valor (R$)</option>
+</select>
+
+<label>Valor:</label>
+<input type="number" id="valorDesconto" step="0.01">
+
+<br><br>
+
+<label>Quantidade de produtos:</label>
+<input type="number" id="qtdProdutos" min="1" value="1">
+
+<button type="button" onclick="gerarCampos()">Gerar Produtos</button>
+
+<div id="produtos"></div>
+
+<br>
+
+<button type="button" onclick="calcular()">Calcular</button>
+
+<div class="erro" id="erro"></div>
+
+<div class="resultado" id="resultado"></div>
+
+</div>
+
+<div class="rodape">
+    <strong>FASTNET TELECOM</strong><br>
+    Ferramenta Interna para Gestão de Descontos
+</div>
+
+</div>
+
+<script>
+
+window.onload = function(){
+    gerarCampos();
+};
+
+function gerarCampos(){
+
+    const qtd = parseInt(document.getElementById("qtdProdutos").value) || 1;
+    const container = document.getElementById("produtos");
+
+    container.innerHTML = "";
+
+    for(let i=1;i<=qtd;i++){
+
+        const div = document.createElement("div");
+        div.className = "produto";
+
+        div.innerHTML = `
+            <strong>Produto ${i}</strong><br>
+            <input type="number" step="0.01" class="valorProduto" placeholder="Valor do produto">
+        `;
+
+        container.appendChild(div);
+    }
+}
+
+function moeda(valor){
+    return valor.toLocaleString('pt-BR',{
+        style:'currency',
+        currency:'BRL'
+    });
+}
+
+function calcular(){
+
+    document.getElementById("erro").innerHTML = "";
+
+    const tipo = document.getElementById("tipoDesconto").value;
+    const valorDesconto = parseFloat(document.getElementById("valorDesconto").value);
+
+    const produtos = document.querySelectorAll(".valorProduto");
+
+    let valores = [];
+
+    produtos.forEach(function(p){
+        valores.push(parseFloat(p.value) || 0);
+    });
+
+    const totalPlano = valores.reduce(function(a,b){
+        return a+b;
+    },0);
+
+    if(totalPlano <= 0){
+        document.getElementById("erro").innerHTML =
+        "Informe os valores dos produtos.";
+        return;
+    }
+
+    let descontos = [];
+
+    if(tipo === "percentual"){
+
+        if(isNaN(valorDesconto)){
+            document.getElementById("erro").innerHTML =
+            "Informe o percentual de desconto.";
+            return;
+        }
+
+        if(valorDesconto >= 100){
+            document.getElementById("erro").innerHTML =
+            "O desconto não pode ser igual ou superior a 100%.";
+            return;
+        }
+
+        valores.forEach(function(v){
+
+            let desconto = v * (valorDesconto/100);
+
+            if(desconto >= v){
+                desconto = v - 0.01;
+            }
+
+            descontos.push(desconto);
+
+        });
+
+    }else{
+
+        if(isNaN(valorDesconto)){
+            document.getElementById("erro").innerHTML =
+            "Informe o valor do desconto.";
+            return;
+        }
+
+        if(valorDesconto >= totalPlano){
+            document.getElementById("erro").innerHTML =
+            "O desconto não pode ser igual ou superior ao valor total do contrato.";
+            return;
+        }
+
+        valores.forEach(function(v){
+
+            let participacao = v / totalPlano;
+            let desconto = valorDesconto * participacao;
+
+            if(desconto >= v){
+                desconto = v - 0.01;
+            }
+
+            descontos.push(desconto);
+
+        });
+    }
+
+    let html = `
+    <table>
+        <tr>
+            <th>Produto</th>
+            <th>Valor Original</th>
+            <th>Desconto (R$)</th>
+            <th>Desconto (%)</th>
+            <th>Valor Final</th>
+        </tr>
+    `;
+
+    let textoResumo = "Aplicar os seguintes descontos:\n\n";
+
+    let totalDesconto = 0;
+
+    valores.forEach(function(valor,index){
+
+        let desconto = descontos[index];
+        let percentual = (desconto/valor)*100;
+        let final = valor - desconto;
+
+        totalDesconto += desconto;
+
+        html += `
+        <tr>
+            <td>Produto ${index+1}</td>
+            <td>${moeda(valor)}</td>
+            <td>${moeda(desconto)}</td>
+            <td>${percentual.toFixed(2)}%</td>
+            <td>${moeda(final)}</td>
+        </tr>
+        `;
+
+        textoResumo +=
+        `Produto ${index+1}: desconto de ${moeda(desconto)} (${percentual.toFixed(2)}%)\n`;
+
+    });
+
+    html += "</table>";
+
+    const valorFinalContrato = totalPlano - totalDesconto;
+    const percentualEfetivo = (totalDesconto / totalPlano) * 100;
+
+    textoResumo += `\nTotal do desconto: ${moeda(totalDesconto)}`;
+    textoResumo += `\nValor final do contrato: ${moeda(valorFinalContrato)}`;
+
+    html += `
+
+    <div class="kpis">
+
+        <div class="kpi">
+            <strong>Total do Plano</strong>
+            ${moeda(totalPlano)}
+        </div>
+
+        <div class="kpi">
+            <strong>Total do Desconto</strong>
+            ${moeda(totalDesconto)}
+        </div>
+
+        <div class="kpi">
+            <strong>Percentual Efetivo</strong>
+            ${percentualEfetivo.toFixed(2)}%
+        </div>
+
+        <div class="kpi">
+            <strong>Valor Final</strong>
+            ${moeda(valorFinalContrato)}
+        </div>
+
+    </div>
+
+    <h3>Resumo</h3>
+
+    <p><strong>Total do Plano:</strong> ${moeda(totalPlano)}</p>
+    <p><strong>Total do Desconto:</strong> ${moeda(totalDesconto)}</p>
+    <p><strong>Valor Final:</strong> ${moeda(valorFinalContrato)}</p>
+
+    <textarea id="textoResumo">${textoResumo}</textarea>
+
+    <br><br>
+
+    <button type="button" onclick="copiarResumo()">
+        Copiar Resumo
+    </button>
+    `;
+
+    document.getElementById("resultado").innerHTML = html;
+}
+
+function copiarResumo(){
+
+    const texto = document.getElementById("textoResumo");
+
+    texto.select();
+    texto.setSelectionRange(0,99999);
+
+    navigator.clipboard.writeText(texto.value)
+    .then(function(){
+        alert("Resumo copiado!");
+    })
+    .catch(function(){
+        alert("Não foi possível copiar.");
+    });
+}
+
+</script>
+
+</body>
+</html>
